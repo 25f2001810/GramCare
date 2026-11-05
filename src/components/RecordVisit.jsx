@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AudioLines, Mic, Sparkles, Square } from 'lucide-react';
 import { useSpeech } from '../lib/speech.js';
 import { extractWithFallback, reviewFlags } from '../lib/extract.js';
 import { scorePatient } from '../lib/scoring.js';
@@ -86,7 +87,29 @@ export default function RecordVisit({ patients, initialId, onSave }) {
         </select>
       </label>
 
-      <div className="field">
+      {speech.supported && (
+        <div className="mic-hero">
+          <button
+            type="button"
+            className={`mic-button ${speech.listening ? 'recording' : ''}`}
+            onClick={toggleMic}
+            aria-label={speech.listening ? 'Stop recording visit' : 'Start recording visit'}
+            aria-pressed={speech.listening}
+          >
+            {speech.listening ? <Square size={30} fill="currentColor" aria-hidden="true" /> : <Mic size={34} aria-hidden="true" />}
+            <span>{speech.listening ? 'Stop recording' : 'Tap to speak'}</span>
+          </button>
+          <p className="recording-state" aria-live="polite">
+            {speech.listening ? 'Listening. Speak clearly, then tap stop.' : 'Record the visit in your own words.'}
+          </p>
+          <div className={`level-indicator ${speech.listening ? 'active' : ''}`} aria-hidden="true">
+            <AudioLines size={22} />
+            <span /><span /><span /><span />
+          </div>
+        </div>
+      )}
+
+      <div className="field transcript-field">
         <div className="row between">
           <label htmlFor="transcript">What you saw and heard</label>
           <select aria-label="Speaking language" className="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
@@ -107,13 +130,8 @@ export default function RecordVisit({ patients, initialId, onSave }) {
         {speech.error && <p className="error" role="alert">{speech.error}</p>}
         {!speech.supported && <p className="hint">Voice is not available in this browser. Type the visit instead.</p>}
         <div className="row gap">
-          {speech.supported && (
-            <button type="button" className={`btn mic ${speech.listening ? 'recording' : ''}`} onClick={toggleMic}>
-              {speech.listening ? 'Stop' : 'Speak'}
-            </button>
-          )}
-          <button type="button" className="btn" onClick={() => fillFrom(transcript)} disabled={!transcript.trim() || busy}>
-            {busy ? 'Reading…' : 'Fill the form'}
+          <button type="button" className="btn secondary" onClick={() => fillFrom(transcript)} disabled={!transcript.trim() || busy} aria-busy={busy}>
+            <Sparkles size={19} aria-hidden="true" /> {busy ? 'Reading…' : 'Fill the form'}
           </button>
         </div>
         {source && (
@@ -178,9 +196,11 @@ export default function RecordVisit({ patients, initialId, onSave }) {
         <span>The patient agreed to this being recorded.</span>
       </label>
 
-      <button className="btn primary block" onClick={save} disabled={!canSave}>
-        Save visit
-      </button>
+      <div className="save-visit-bar">
+        <button className="btn primary block" onClick={save} disabled={!canSave}>
+          Save visit
+        </button>
+      </div>
       {!patient && <p className="hint">Choose a patient to save.</p>}
     </section>
   );
