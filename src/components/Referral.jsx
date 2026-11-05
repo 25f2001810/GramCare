@@ -1,10 +1,10 @@
-import { buildReferralText, bpText } from '../lib/referral.js';
+import { buildReferralText, buildWhatsAppUrl, bpText } from '../lib/referral.js';
 import { ACTION_BY_LEVEL } from '../lib/scoring.js';
 
 export default function Referral({ patient }) {
   const text = buildReferralText(patient);
   const l = patient.latest;
-  const whatsapp = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  const whatsapp = buildWhatsAppUrl(text);
 
   const share = async () => {
     if (navigator.share) {

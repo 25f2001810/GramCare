@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { scorePatient } from '../src/lib/scoring.js';
 import { extractFromTranscript, reviewFlags } from '../src/lib/extract.js';
 import { buildPatientViews } from '../src/lib/patients.js';
+import { buildWhatsAppUrl } from '../src/lib/referral.js';
 import { addDays } from '../src/lib/util.js';
 
 const TODAY = '2026-11-05';
@@ -60,4 +61,11 @@ test('patient list is sorted highest risk first', () => {
   const v = buildPatientViews(patients, visits, TODAY);
   assert.equal(v[0].id, 'b');
   assert.equal(v[0].risk.level, 'HIGH');
+});
+
+test('WhatsApp referral URL safely encodes the complete summary', () => {
+  const summary = 'GramCare referral: HIGH priority\nPatient: Asha & family';
+  const url = new URL(buildWhatsAppUrl(summary));
+  assert.equal(url.origin, 'https://wa.me');
+  assert.equal(url.searchParams.get('text'), summary);
 });

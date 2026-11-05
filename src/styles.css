@@ -253,6 +253,8 @@ select.lang { width: auto; min-height: 2.75rem; }
 .doctor-empty svg { color: var(--color-risk-low); }
 .doctor-empty p { margin: var(--space-2) 0; }
 .patient-detail { display: grid; gap: var(--space-4); }
+.patient-detail-actions { flex-wrap: wrap; }
+.patient-detail-actions a { text-decoration: none; }
 .back-link { display: inline-flex; min-height: 3rem; align-items: center; gap: var(--space-2); width: fit-content; color: var(--color-primary); font-weight: 750; text-decoration: none; }
 .detail-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; }
 .detail-heading h2 { margin: var(--space-2) 0 0; font-size: var(--text-xl); }
@@ -301,8 +303,13 @@ select.lang { width: auto; min-height: 2.75rem; }
   .level-indicator.active span { animation: none; height: 0.65rem; }
 }
 @media print {
-  body { background: #fff; }
-  .no-print, .bottom-tabs { display: none !important; }
+  body { background: #fff; color: #111; font-size: 12pt; }
+  .no-print, .bottom-tabs, .review-panel, .back-link { display: none !important; }
   .referral { border: 0; padding: 0; }
-  .app { padding: 0; max-width: none; }
+  .app, .doctor-app, .doctor-app main, .patient-detail { margin: 0; padding: 0; max-width: none; }
+  .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .detail-heading, .detail-panel { break-inside: avoid; border: 1px solid #777; box-shadow: none; }
+  .detail-panel { padding: 0.75rem; }
+  .detail-heading { margin-bottom: 0.5rem; }
+  .transcript, .referral-text, .vitals-history li { background: #fff; }
 }

@@ -1,6 +1,7 @@
 import { ACTION_BY_LEVEL } from './scoring.js';
 
 export const bpText = (bp) => (bp ? `${bp.sys}/${bp.dia}` : 'not recorded');
+export const buildWhatsAppUrl = (text) => `https://wa.me/?text=${encodeURIComponent(String(text))}`;
 
 /** Plain-text summary used for WhatsApp share and copy. Assistive, never a diagnosis. */
 export function buildReferralText(p) {

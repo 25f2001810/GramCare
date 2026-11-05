@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, ClipboardList, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ClipboardList, Printer, Save, Share2 } from 'lucide-react';
 import { useAuth } from '../../lib/auth.js';
-import { buildReferralText, bpText } from '../../lib/referral.js';
+import { buildReferralText, buildWhatsAppUrl, bpText } from '../../lib/referral.js';
 import { db } from '../../db.js';
 import { uid } from '../../lib/util.js';
 
@@ -54,6 +54,21 @@ export default function PatientDetail() {
         </div>
         {reviewed && <span className="reviewed-state"><CheckCircle2 size={18} aria-hidden="true" /> Reviewed</span>}
       </section>
+
+      <div className="row gap patient-detail-actions no-print">
+        <a
+          className="btn primary"
+          href={buildWhatsAppUrl(referralText)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Share ${patient.name}'s referral on WhatsApp`}
+        >
+          <Share2 size={19} aria-hidden="true" /> Share referral on WhatsApp
+        </a>
+        <button type="button" className="btn secondary" onClick={() => window.print()} aria-label={`Print ${patient.name}'s patient record`}>
+          <Printer size={19} aria-hidden="true" /> Print patient data
+        </button>
+      </div>
 
       <div className="detail-grid">
         <section className="detail-panel" aria-labelledby="vitals-title">
