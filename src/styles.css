@@ -1,0 +1,139 @@
+:root {
+  --navy: #0b3d91;
+  --navy-dark: #082c69;
+  --ink: #111827;
+  --muted: #4b5563;
+  --line: #d1d5db;
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --red: #b91c1c;
+  --red-bg: #fee2e2;
+  --amber: #b45309;
+  --amber-bg: #fef3c7;
+  --green: #15803d;
+  --green-bg: #dcfce7;
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  /* System fonts only, so the app renders offline. Noto/Nirmala cover Tamil and Hindi. */
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Tamil', 'Nirmala UI', sans-serif;
+  font-size: 17px;
+  line-height: 1.45;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+
+.app { max-width: 520px; margin: 0 auto; min-height: 100vh; padding-bottom: 5rem; }
+main { padding: 1rem; }
+.loading { padding: 2rem; text-align: center; color: var(--muted); }
+
+/* Header */
+.app-header {
+  background: var(--navy);
+  color: #fff;
+  padding: calc(env(safe-area-inset-top, 0px) + 0.75rem) 1rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.app-header h1 { margin: 0.5rem 0 0.15rem; font-size: 1.6rem; line-height: 1.2; }
+.app-header .sub { margin: 0; color: #dce6f7; font-size: 0.95rem; }
+.brand { font-weight: 700; letter-spacing: 0.01em; }
+.row { display: flex; align-items: center; }
+.between { justify-content: space-between; gap: 0.5rem; }
+.gap { gap: 0.6rem; }
+.chip { font-size: 0.85rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 999px; }
+.chip-online { background: var(--green-bg); color: var(--green); }
+.chip-offline { background: #fde68a; color: var(--ink); }
+.sync-btn {
+  background: #fff; color: var(--navy); border: 0; border-radius: 999px;
+  padding: 0.25rem 0.8rem; font-weight: 700; font-size: 0.9rem; min-height: 32px;
+}
+.sync-btn:disabled { opacity: 0.7; }
+.link-btn { background: none; border: 0; padding: 0.4rem 0; color: inherit; text-decoration: underline; font-weight: 600; cursor: pointer; min-height: 44px; }
+.footnote .link-btn { color: var(--navy); min-height: 0; }
+
+/* Buttons */
+.btn {
+  min-height: 48px; padding: 0.55rem 1.1rem; border-radius: var(--radius);
+  border: 2px solid var(--navy); background: #fff; color: var(--navy);
+  font-weight: 700; cursor: pointer;
+}
+.btn.primary { background: var(--navy); color: #fff; }
+.btn.primary:active { background: var(--navy-dark); }
+.btn.block { width: 100%; margin-top: 0.75rem; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.mic.recording { background: var(--red); border-color: var(--red); color: #fff; }
+
+/* Visit cards: risk is shown by the badge and the left-hand status text, not by decoration */
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.card { background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); padding: 0.9rem 1rem; }
+.card.risk-high { border-color: var(--red); }
+.card h2 { margin: 0; font-size: 1.2rem; }
+.meta { margin: 0.2rem 0; color: var(--muted); font-size: 0.95rem; }
+.reason { margin: 0 0 0.7rem; font-weight: 700; }
+.risk-high .reason { color: var(--red); }
+.risk-medium .reason { color: var(--amber); }
+.risk-low .reason { color: var(--green); }
+.badge { font-size: 0.8rem; font-weight: 800; padding: 0.2rem 0.7rem; border-radius: 999px; color: #fff; }
+.badge-high { background: var(--red); }
+.badge-medium { background: var(--amber); }
+.badge-low { background: var(--green); }
+.footnote { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; }
+
+/* Forms */
+.record { display: grid; gap: 1rem; }
+.field { display: grid; gap: 0.3rem; }
+.field > span, .field label, legend { font-weight: 700; font-size: 0.95rem; }
+input, select, textarea {
+  width: 100%; min-height: 48px; padding: 0.5rem 0.7rem; background: #fff;
+  border: 2px solid var(--line); border-radius: 10px;
+}
+textarea { resize: vertical; }
+select.lang { width: auto; min-height: 40px; padding: 0.2rem 0.5rem; }
+.form { border: 2px solid var(--line); border-radius: var(--radius); padding: 0.8rem 1rem 1rem; background: #fff; display: grid; gap: 0.75rem; margin: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.check { display: flex; gap: 0.7rem; align-items: flex-start; }
+.check input { width: 26px; min-height: 26px; height: 26px; flex: none; margin-top: 0.1rem; accent-color: var(--navy); }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 0.2rem 0 0; }
+.error { color: var(--red); font-weight: 700; margin: 0.2rem 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.flag { background: var(--red-bg); color: var(--red); font-weight: 700; font-size: 0.9rem; padding: 0.2rem 0.7rem; border-radius: 999px; }
+.flag-amber { background: var(--amber-bg); color: var(--amber); }
+.banner { border-radius: var(--radius); padding: 0.7rem 1rem; color: #fff; font-weight: 600; }
+.banner-high { background: var(--red); }
+.banner-medium { background: var(--amber); }
+.banner-low { background: var(--green); }
+
+/* Referral */
+.referral { background: #fff; border: 2px solid var(--line); border-radius: var(--radius); padding: 1rem; display: grid; gap: 0.75rem; }
+.referral h2 { margin: 0; font-size: 1.5rem; }
+.referral .meta { margin: 0; }
+.facts { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.5rem 0.75rem; margin: 0; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 700; }
+
+/* Consent screen */
+.consent { max-width: 520px; margin: 0 auto; padding: 3rem 1.25rem; display: grid; gap: 1.25rem; }
+.consent h1 { margin: 0; color: var(--navy); font-size: 2.2rem; }
+.lead { margin: 0; font-size: 1.1rem; }
+.notice { background: var(--amber-bg); border-radius: var(--radius); padding: 0.8rem 1rem; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  max-width: calc(100% - 2rem); background: var(--ink); color: #fff;
+  padding: 0.75rem 1.1rem; border-radius: var(--radius); font-weight: 600; z-index: 10;
+}
+
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  .referral { border: 0; padding: 0; }
+  .app { padding: 0; max-width: none; }
+}
