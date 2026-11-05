@@ -126,6 +126,8 @@ export default function App() {
         title={title}
         subtitle={subtitle}
         onBack={view.name === 'home' ? null : home}
+        activeView={view.name}
+        onNavigate={(name) => setView({ name })}
       />
       <main>{screen}</main>
       {toast && (
