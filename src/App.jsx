@@ -16,6 +16,8 @@ import Referral from './components/Referral.jsx';
 import Login from './pages/Login.jsx';
 import DoctorDashboard from './pages/Doctor/Dashboard.jsx';
 import PatientDetail from './pages/Doctor/PatientDetail.jsx';
+import SettingsPage from './pages/Settings.jsx';
+import { LanguageProvider } from './i18n/index.js';
 
 const NEXT_VISIT_DAYS = { HIGH: 7, MEDIUM: 14, LOW: 28 };
 const titles = {
@@ -135,6 +137,7 @@ function WorkerLayout() {
         onNavigate={navigateTab}
         user={user}
         onLogout={goLogout}
+        onSettings={() => navigate('/settings')}
       />
       <main>
         <Outlet context={{ patients: patientViews, visits, saveVisit, setToast }} />
@@ -237,7 +240,7 @@ function DoctorLayout() {
 
   return (
     <div className="app doctor-app">
-      <Header online={online} pending={pending} syncing={syncing} onSync={runSync} title={title} subtitle={subtitle} user={user} onLogout={goLogout} />
+      <Header online={online} pending={pending} syncing={syncing} onSync={runSync} title={title} subtitle={subtitle} user={user} onLogout={goLogout} onSettings={() => navigate('/settings')} />
       <main>
         <p className="phc-label">{user.phc}</p>
         <Outlet context={{ patients: patientViews, visits, reviews, setToast }} />
@@ -260,6 +263,9 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
+      <Route element={<RequireUser />}>
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
       <Route element={<RequireRole role="worker" />}>
         <Route element={<WorkerLayout />}>
           <Route path="/visits" element={<WorkerVisits />} />
@@ -279,12 +285,20 @@ function AppRoutes() {
   );
 }
 
+function RequireUser() {
+  const { user, loading } = useAuth();
+  if (loading) return <Loading />;
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter>
-        <AppRoutes />
-      </HashRouter>
+      <LanguageProvider>
+        <HashRouter>
+          <AppRoutes />
+        </HashRouter>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

@@ -1,6 +1,8 @@
 import { AlertCircle, CalendarPlus, CheckCircle2, FileText } from 'lucide-react';
+import { useLanguage } from '../i18n/index.js';
 
 export default function VisitList({ patients, onRecord, onReferral, onReset }) {
+  const { t } = useLanguage();
   if (!patients.length) {
     return (
       <section className="empty-state">
@@ -30,24 +32,24 @@ export default function VisitList({ patients, onRecord, onReferral, onReset }) {
             </p>
             <p className="visit-bp">Last BP: {p.latest?.bp ? `${p.latest.bp.sys}/${p.latest.bp.dia}` : 'Not recorded'}</p>
             <div className="row gap visit-actions">
-              <button className="btn primary" onClick={() => onRecord(p.id)} aria-label={`Record visit for ${p.name}`}>
-                <CalendarPlus size={19} aria-hidden="true" /> Record visit
+              <button className="btn primary" onClick={() => onRecord(p.id)} aria-label={`${t('button.recordVisit')} for ${p.name}`}>
+                <CalendarPlus size={19} aria-hidden="true" /> {t('button.recordVisit')}
               </button>
               {p.risk.level !== 'LOW' && (
-                <button className="btn secondary" onClick={() => onReferral(p.id)} aria-label={`View referral for ${p.name}`}>
-                  <FileText size={19} aria-hidden="true" /> Referral
+                <button className="btn secondary" onClick={() => onReferral(p.id)} aria-label={`${t('button.referral')} for ${p.name}`}>
+                  <FileText size={19} aria-hidden="true" /> {t('button.referral')}
                 </button>
               )}
             </div>
           </li>
         ))}
       </ul>
-      <p className="footnote no-print">
+      {onReset && <p className="footnote no-print">
         Demo data is fake.{' '}
-        <button className="link-btn" onClick={onReset}>
-          Reset demo data
+        <button className="btn ghost" onClick={onReset}>
+          {t('settings.resetDemo')}
         </button>
-      </p>
+      </p>}
     </>
   );
 }

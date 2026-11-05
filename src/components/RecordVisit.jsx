@@ -4,6 +4,7 @@ import { useSpeech } from '../lib/speech.js';
 import { extractWithFallback, reviewFlags } from '../lib/extract.js';
 import { scorePatient } from '../lib/scoring.js';
 import { splitList } from '../lib/util.js';
+import { useLanguage } from '../i18n/index.js';
 
 const LANGS = [
   ['en-IN', 'English'],
@@ -14,6 +15,7 @@ const LLM_ENDPOINT = import.meta.env.VITE_LLM_ENDPOINT;
 const union = (a, b) => [...new Set([...a, ...b])];
 
 export default function RecordVisit({ patients, initialId, onSave }) {
+  const { t } = useLanguage();
   const [patientId, setPatientId] = useState(initialId || '');
   const [lang, setLang] = useState('en-IN');
   const [transcript, setTranscript] = useState('');
@@ -93,11 +95,11 @@ export default function RecordVisit({ patients, initialId, onSave }) {
             type="button"
             className={`mic-button ${speech.listening ? 'recording' : ''}`}
             onClick={toggleMic}
-            aria-label={speech.listening ? 'Stop recording visit' : 'Start recording visit'}
+            aria-label={speech.listening ? t('button.stopRecording') : t('button.speak')}
             aria-pressed={speech.listening}
           >
             {speech.listening ? <Square size={30} fill="currentColor" aria-hidden="true" /> : <Mic size={34} aria-hidden="true" />}
-            <span>{speech.listening ? 'Stop recording' : 'Tap to speak'}</span>
+            <span>{speech.listening ? t('button.stopRecording') : t('button.speak')}</span>
           </button>
           <p className="recording-state" aria-live="polite">
             {speech.listening ? 'Listening. Speak clearly, then tap stop.' : 'Record the visit in your own words.'}
@@ -131,7 +133,7 @@ export default function RecordVisit({ patients, initialId, onSave }) {
         {!speech.supported && <p className="hint">Voice is not available in this browser. Type the visit instead.</p>}
         <div className="row gap">
           <button type="button" className="btn secondary" onClick={() => fillFrom(transcript)} disabled={!transcript.trim() || busy} aria-busy={busy}>
-            <Sparkles size={19} aria-hidden="true" /> {busy ? 'Reading…' : 'Fill the form'}
+            <Sparkles size={19} aria-hidden="true" /> {busy ? 'Reading…' : t('button.fillForm')}
           </button>
         </div>
         {source && (
@@ -198,7 +200,7 @@ export default function RecordVisit({ patients, initialId, onSave }) {
 
       <div className="save-visit-bar">
         <button className="btn primary block" onClick={save} disabled={!canSave}>
-          Save visit
+          {t('button.saveVisit')}
         </button>
       </div>
       {!patient && <p className="hint">Choose a patient to save.</p>}

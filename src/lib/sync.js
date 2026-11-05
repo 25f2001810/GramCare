@@ -31,7 +31,9 @@ export async function syncPending() {
       pendingVisits.length && db.visits.bulkPut(pendingVisits.map((visit) => ({ ...visit, synced: 1 }))),
       pendingReviews.length && db.reviews.bulkPut(pendingReviews.map((review) => ({ ...review, synced: 1 })))
     ]);
-    return { synced: pendingVisits.length + pendingReviews.length };
+    const synced = pendingVisits.length + pendingReviews.length;
+    globalThis.localStorage?.setItem('gramcare-last-synced', String(Date.now()));
+    return { synced };
   } finally {
     running = false;
   }
