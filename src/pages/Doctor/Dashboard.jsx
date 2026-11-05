@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, Clock3, FileText, Search, Users } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
+import { AlertCircle, CheckCircle2, Clock3, CloudUpload, FileText, Search, Users } from 'lucide-react';
 import { todayISO } from '../../lib/util.js';
 
 const FILTERS = ['All', 'High', 'Medium', 'Low', 'Needs review'];
@@ -25,7 +24,7 @@ function SkeletonDashboard() {
 }
 
 export default function DoctorDashboard() {
-  const { patients, visits, reviews } = useOutletContext();
+  const { patients, visits, reviews, pending } = useOutletContext();
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
   const latestReviewByPatient = useMemo(() => {
@@ -49,7 +48,7 @@ export default function DoctorDashboard() {
   const filteredPatients = patients.filter((patient) => {
     const matchesText = !normalizedQuery || `${patient.name} ${patient.village}`.toLocaleLowerCase().includes(normalizedQuery);
     const reviewed = latestReviewByPatient.get(patient.id)?.status === 'reviewed';
-    const matchesFilter = filter === 'All' ||
+    const matchesFilter = (filter === 'All' && patient.risk.level !== 'LOW') ||
       (filter === 'Needs review' ? patient.risk.level !== 'LOW' && !reviewed : patient.risk.level === filter.toUpperCase());
     return matchesText && matchesFilter;
   });
@@ -65,6 +64,7 @@ export default function DoctorDashboard() {
         <article className="summary-card summary-medium"><Clock3 aria-hidden="true" /><span>MEDIUM</span><strong>{counts.MEDIUM}</strong><small>patients</small></article>
         <article className="summary-card summary-low"><CheckCircle2 aria-hidden="true" /><span>LOW</span><strong>{counts.LOW}</strong><small>patients</small></article>
         <article className="summary-card"><FileText aria-hidden="true" /><span>Referrals today</span><strong>{todaysReferrals}</strong><small>patients</small></article>
+        <article className="summary-card"><CloudUpload aria-hidden="true" /><span>Unsynced</span><strong>{pending || 0}</strong><small>items waiting</small></article>
       </section>
 
       <section className="inbox" aria-labelledby="inbox-title">

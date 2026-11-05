@@ -282,9 +282,14 @@ select.lang { width: auto; min-height: 2.75rem; }
   .app-header { padding-right: max(var(--space-5), calc((100% - 1060px) / 2)); padding-left: max(var(--space-5), calc((100% - 1060px) / 2)); }
   .bottom-tabs { position: static; max-width: 40rem; margin: var(--space-4) auto; border: 1px solid var(--color-line); border-radius: var(--radius-lg); box-shadow: none; }
   .toast { bottom: var(--space-5); }
-  .summary-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .summary-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .save-visit-bar { bottom: var(--space-2); margin: 0; padding: var(--space-3); border-radius: var(--radius-lg); }
+}
+@media (min-width: 900px) {
+  .doctor-dashboard { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(14rem, 0.75fr); align-items: start; gap: var(--space-4); }
+  .doctor-dashboard .inbox { grid-column: 1; grid-row: 1; }
+  .doctor-dashboard .summary-strip { grid-column: 2; grid-row: 1; grid-template-columns: 1fr; margin: 0; }
 }
 @media (max-width: 380px) {
   .header-actions { gap: var(--space-1); }

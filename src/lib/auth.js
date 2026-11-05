@@ -1,4 +1,4 @@
-import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, createElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../db.js';
 
 const SESSION_KEY = 'gramcare-session';
@@ -38,7 +38,7 @@ function safeUser(row) {
   return user;
 }
 
-function readSession() {
+export function readSession() {
   try {
     const stored = globalThis.localStorage?.getItem(SESSION_KEY);
     if (!stored) return null;
@@ -47,6 +47,7 @@ function readSession() {
       !session?.userId ||
       !['doctor', 'worker'].includes(session.role) ||
       !Number.isFinite(session.loginAt) ||
+      session.loginAt > Date.now() ||
       Date.now() - session.loginAt >= SESSION_DURATION
     ) {
       globalThis.localStorage.removeItem(SESSION_KEY);
@@ -77,6 +78,7 @@ export function logout() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const expiryTimer = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -87,7 +89,13 @@ export function AuthProvider({ children }) {
     }
     db.users.get(session.userId).then((row) => {
       if (active) {
-        if (row && row.role === session.role) setUser(safeUser(row));
+        if (row && row.role === session.role) {
+          setUser(safeUser(row));
+          expiryTimer.current = window.setTimeout(() => {
+            logout();
+            setUser(null);
+          }, Math.max(0, session.loginAt + SESSION_DURATION - Date.now()));
+        }
         else globalThis.localStorage?.removeItem(SESSION_KEY);
         setLoading(false);
       }
@@ -97,7 +105,10 @@ export function AuthProvider({ children }) {
         console.error('Unable to restore the saved session.', error);
       }
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.clearTimeout(expiryTimer.current);
+    };
   }, []);
 
   const value = useMemo(() => ({
@@ -106,9 +117,15 @@ export function AuthProvider({ children }) {
     login: async (email, password) => {
       const signedIn = await login(email, password);
       setUser(signedIn);
+      window.clearTimeout(expiryTimer.current);
+      expiryTimer.current = window.setTimeout(() => {
+        logout();
+        setUser(null);
+      }, SESSION_DURATION);
       return signedIn;
     },
     logout: () => {
+      window.clearTimeout(expiryTimer.current);
       logout();
       setUser(null);
     },

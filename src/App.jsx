@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db.js';
-import { AuthProvider, getRoleHome, useAuth } from './lib/auth.js';
+import { AuthProvider, canAccessRole, getRoleHome, useAuth } from './lib/auth.js';
 import { seedIfEmpty, resetDemoData } from './lib/seed.js';
 import { buildPatientViews } from './lib/patients.js';
 import { syncPending } from './lib/sync.js';
@@ -34,7 +34,7 @@ function RequireRole({ role }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== role) return <Navigate to={getRoleHome(user.role)} replace />;
+  if (!canAccessRole(user.role, role)) return <Navigate to={getRoleHome(user.role)} replace />;
   return <Outlet />;
 }
 
@@ -55,7 +55,9 @@ function WorkerLayout() {
   const [syncing, setSyncing] = useState(false);
   const patients = useLiveQuery(() => db.patients.toArray(), []);
   const visits = useLiveQuery(() => db.visits.toArray(), []);
-  const pending = useLiveQuery(() => db.visits.where('synced').equals(0).count(), [], 0);
+  const pendingVisits = useLiveQuery(() => db.visits.where('synced').equals(0).count(), [], 0);
+  const pendingReviews = useLiveQuery(() => db.reviews.where('synced').equals(0).count(), [], 0);
+  const pending = pendingVisits + pendingReviews;
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -118,7 +120,7 @@ function WorkerLayout() {
   const path = location.pathname.startsWith('/record') ? 'record' : location.pathname.startsWith('/referrals') ? 'referrals' : 'visits';
   const [title, subtitle] = titles[path];
   const goLogout = () => {
-    if (pending > 0 && !window.confirm(`You have ${pending} unsynced visit${pending === 1 ? '' : 's'}. Log out anyway? They will stay on this phone.`)) return;
+    if (pending > 0 && !window.confirm(`You have ${pending} unsynced item${pending === 1 ? '' : 's'}. Log out anyway? They will stay on this phone.`)) return;
     logout();
     navigate('/login', { replace: true });
   };
@@ -243,7 +245,7 @@ function DoctorLayout() {
       <Header online={online} pending={pending} syncing={syncing} onSync={runSync} title={title} subtitle={subtitle} user={user} onLogout={goLogout} onSettings={() => navigate('/settings')} />
       <main>
         <p className="phc-label">{user.phc}</p>
-        <Outlet context={{ patients: patientViews, visits, reviews, setToast }} />
+        <Outlet context={{ patients: patientViews, visits, reviews, pending, setToast }} />
       </main>
       {toast && <div className="toast no-print" role="status" aria-live="polite">{toast}</div>}
     </div>

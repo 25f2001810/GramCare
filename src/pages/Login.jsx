@@ -55,8 +55,8 @@ export default function Login({ onLogin }) {
             />
             {emailError && <span className="error" id="login-email-error">{emailError}</span>}
           </label>
-          <label className="field" htmlFor="login-password">
-            <span>{t('login.password')}</span>
+          <div className="field">
+            <label htmlFor="login-password">{t('login.password')}</label>
             <span className="password-field">
               <input
                 id="login-password"
@@ -73,7 +73,7 @@ export default function Login({ onLogin }) {
               </button>
             </span>
             {passwordError && <span className="error" id="login-password-error">{passwordError}</span>}
-          </label>
+          </div>
           {error && <p className="error" role="alert">{error}</p>}
           <button className="btn primary block" type="submit" disabled={busy}>
             {busy ? <><span className="spinner" aria-hidden="true" /> {t('login.signingIn')}</> : t('login.signIn')}

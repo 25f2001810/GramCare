@@ -1,78 +1,68 @@
-# GramCare AI: base frontend
+# GramCare AI
 
-Voice-first, offline-first PWA for community health workers (maternal health demo).
-React + Vite + Dexie (IndexedDB) + vite-plugin-pwa. No backend needed to start.
+Offline-first, voice-first PWA for community health workers and PHC doctors. Built with React, Vite, Dexie, and the browser's local storage APIs. The app shell and data work offline after the first install; no remote fonts or images are used.
 
 ## Run it
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173  (also reachable from your phone on the same Wi-Fi)
-npm test           # unit tests for extraction and risk scoring
-npm run build && npm run preview   # production build; test offline mode here
+npm run dev
+npm test
+npm run build
+npm run preview
 ```
 
-Test offline properly with the **production build** (`preview`), then in Chrome DevTools
-go to Application > Service Workers > Offline. The dev server does not register the service worker.
+Test offline using the production build: open the preview, then in Chrome DevTools choose **Application > Service Workers > Offline**. The development server does not register the service worker.
 
-## What already works
+## Demo sign-in
 
-| Feature | Where |
-|---|---|
-| Ranked visit list (HIGH / MEDIUM / LOW with reasons) | `src/components/VisitList.jsx`, `src/lib/scoring.js` |
-| Voice or typed entry, then structured fields | `src/components/RecordVisit.jsx`, `src/lib/speech.js`, `src/lib/extract.js` |
-| Confirm and edit step with flags (BP not recorded, High BP) | `RecordVisit.jsx`, `reviewFlags()` in `extract.js` |
-| Offline storage (IndexedDB) | `src/db.js` |
-| Auto-sync when online, "N to sync" badge | `src/lib/sync.js`, `Header.jsx` |
-| Referral summary: WhatsApp share, print | `src/components/Referral.jsx`, `src/lib/referral.js` |
-| Consent screen, fake demo data, reset button | `Consent.jsx`, `src/lib/seed.js` |
+Open the **Demo credentials** section on the login page:
 
-## Demo script (matches the deck)
+| Role | Email | Password |
+|---|---|---|
+| Doctor | `dr.kumar@demo.gramcare` | `doctor123` |
+| Doctor | `dr.mehta@demo.gramcare` | `doctor123` |
+| Doctor | `dr.rao@demo.gramcare` | `doctor123` |
+| Health worker | `worker@demo.gramcare` | `worker123` |
 
-1. Open the list: Lakshmi is LOW (overdue but otherwise normal).
-2. Go offline. Tap **Record visit** on Lakshmi.
-3. Tap **Speak** (or type): `Lakshmi, 7 months pregnant, BP 150 by 100, headache since yesterday, taking iron tablets`
-4. Tap **Fill the form**, check the values, tick consent, **Save visit**.
-5. Lakshmi jumps to the top as HIGH. Tap **Referral**, then share.
-6. Go back online: the "to sync" badge clears.
+These are fake demo accounts. Passwords are PBKDF2-hashed before being stored in IndexedDB. A local session expires after 12 hours. The worker consent screen appears once after a health worker signs in.
 
-## Risk rules (`src/lib/scoring.js`)
+## Routes
 
-BP >= 140/90 +5 · danger sign +5 · visit overdue > 7 days +3 · 36+ weeks +2 · Hb < 11 +2.
-Score >= 8 HIGH, 4 to 7 MEDIUM, below 4 LOW. Edit `DANGER_SIGNS`, `HIGH_AT`, `MEDIUM_AT` to tune.
+The app uses hash-based routes so navigation works with the installed PWA:
 
-## Known limits (be upfront about these in the demo)
+| Route | Access | Purpose |
+|---|---|---|
+| `#/login` | Signed out | Local demo sign-in |
+| `#/visits` | Health worker | Risk-ranked visits |
+| `#/record` | Health worker | Record and save a visit |
+| `#/referrals` | Health worker | Review referral candidates |
+| `#/referrals/:patientId` | Health worker | Share or print a referral |
+| `#/doctor` | Doctor | Risk summary and referral inbox |
+| `#/doctor/:patientId` | Doctor | Vitals, transcript, referral summary, and review actions |
+| `#/settings` | Signed in | Language, text size, reset fake data |
 
-- **Voice needs internet.** The browser Web Speech API sends audio to a server. Offline, the app
-  falls back to typing. On-device speech (e.g. Whisper) is the next step.
-- **Regex extraction is English with digits** ("150 by 100", "7 months"). For Tamil or Hindi,
-  set `VITE_LLM_ENDPOINT` (see `.env.example`) so a backend LLM does the extraction.
-  Never put an LLM API key in frontend code.
-- **Sync is simulated** until you set `VITE_SYNC_URL` to a real endpoint. Conflict rule is last-write-wins.
-- A per-visit consent tick adds one tap. Remove it from `RecordVisit.jsx` if it hurts adoption in testing,
-  but keep the first-run consent screen.
-- Fake data only. No real patient information.
+Doctor and health-worker routes are role-protected. Visits, demo accounts, and doctor notes are stored locally; queued visits and reviews are marked synced by the simulated sync service, or sent to `VITE_SYNC_URL` if configured.
 
-## Suggested 8-hour order
+## Features
 
-1. Hour 1-2: run it, swap seed data/fields for your scope. 2. Hour 3-4: tune extraction and the confirm screen.
-3. Hour 5: scoring and follow-up rules. 4. Hour 6-7: referral summary, real `/sync` endpoint (FastAPI + Supabase).
-5. Hour 8: test offline, record a backup demo video.
+- Risk scoring and patient sorting: `src/lib/scoring.js`, `src/lib/patients.js`
+- Transcript extraction and review flags: `src/lib/extract.js`
+- Offline database, password hashes, and review history: `src/db.js`, `src/lib/auth.js`
+- Speech input and network status: `src/lib/speech.js`
+- Visit and review sync: `src/lib/sync.js`
+- Demo data: `src/lib/seed.js`
+- Doctor dashboard and patient detail: `src/pages/Doctor/`
+- Localized UI dictionaries: `src/i18n/en.json`, `src/i18n/ta.json`, `src/i18n/hi.json`
 
-## Structure
+## Known limits
 
-```
-src/
-  App.jsx               screen routing, sync trigger, saving a visit
-  db.js                 Dexie schema (patients, visits)
-  components/           Consent, Header, VisitList, RecordVisit, Referral
-  lib/
-    scoring.js          risk rules
-    extract.js          transcript to fields (LLM optional, regex fallback)
-    speech.js           Web Speech hook + online/offline hook
-    sync.js             push unsynced visits
-    patients.js         join patient + latest visit + risk, sorted
-    referral.js         referral text
-    seed.js             fake demo patients
-tests/logic.test.js
-```
+- **Authentication is mock/local only.** Demo account credentials are public and login runs entirely in the browser. The locally stored password hashes and 12-hour session are for a hackathon demo, not production identity or access management.
+- **Sync is simulated** until `VITE_SYNC_URL` is configured. The demo marks queued visits and reviews as synced without a backend. Conflict handling is not production-ready.
+- **Voice may require internet.** The Web Speech API may send audio to the browser provider. Typing remains available; voice recognition is not guaranteed offline.
+- **Extraction is English-first.** Tamil and Hindi are available for the UI and speech-language selection, but local regex extraction is designed for English text and digits.
+- Use fake demo data only. Do not enter real patient information or real credentials.
+
+## Security note
+
+This login is a local demo. For production, authentication must move to a backend (hashed passwords, short-lived tokens, HTTPS, role-based access, audit logs) and patient data must be encrypted and handled under India's DPDP Act. Do not store real credentials or patient data in the browser.
