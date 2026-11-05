@@ -1,6 +1,14 @@
 // FAKE demo data only. Never put real patient information in this file.
 import { db } from '../db.js';
 import { addDays, todayISO } from './util.js';
+import { hashPassword } from './auth.js';
+
+export const DEMO_USERS = [
+  { id: 'doctor-kumar', email: 'dr.kumar@demo.gramcare', name: 'Dr. Arjun Kumar', role: 'doctor', phc: 'Kaveri PHC', password: 'doctor123' },
+  { id: 'doctor-mehta', email: 'dr.mehta@demo.gramcare', name: 'Dr. Nisha Mehta', role: 'doctor', phc: 'Kaveri PHC', password: 'doctor123' },
+  { id: 'doctor-rao', email: 'dr.rao@demo.gramcare', name: 'Dr. Dev Rao', role: 'doctor', phc: 'Kaveri PHC', password: 'doctor123' },
+  { id: 'worker-demo', email: 'worker@demo.gramcare', name: 'Anu Worker', role: 'worker', phc: 'Kaveri PHC', password: 'worker123' }
+];
 
 // due = days from today when the next ANC visit is due (negative = overdue)
 const DEMO = [
@@ -18,9 +26,10 @@ const DEMO = [
 
 export async function resetDemoData() {
   const today = todayISO();
-  await db.transaction('rw', db.patients, db.visits, async () => {
+  await db.transaction('rw', db.patients, db.visits, db.reviews, async () => {
     await db.patients.clear();
     await db.visits.clear();
+    await db.reviews.clear();
     await db.patients.bulkPut(
       DEMO.map(({ id, name, age, village, weeks, due }) => ({ id, name, age, village, weeks, nextVisitDue: addDays(today, due) }))
     );
@@ -42,6 +51,34 @@ export async function resetDemoData() {
   });
 }
 
-export async function seedIfEmpty() {
-  if ((await db.patients.count()) === 0) await resetDemoData();
+export async function seedDemoUsers() {
+  for (const demo of DEMO_USERS) {
+    const exists = await db.users.where('email').equals(demo.email).first();
+    if (exists) continue;
+    const saltBytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    const salt = Array.from(saltBytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    await db.users.add({
+      id: demo.id,
+      email: demo.email,
+      name: demo.name,
+      role: demo.role,
+      phc: demo.phc,
+      passwordHash: await hashPassword(demo.password, salt),
+      salt
+    });
+  }
+}
+
+let seedPromise;
+export function seedIfEmpty() {
+  if (!seedPromise) {
+    seedPromise = (async () => {
+      if ((await db.patients.count()) === 0) await resetDemoData();
+      await seedDemoUsers();
+    })().catch((error) => {
+      seedPromise = undefined;
+      throw error;
+    });
+  }
+  return seedPromise;
 }

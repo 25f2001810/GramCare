@@ -6,3 +6,10 @@ db.version(1).stores({
   patients: 'id, name',
   visits: 'id, patientId, date, synced'
 });
+
+db.version(2).stores({
+  patients: 'id, name',
+  visits: 'id, patientId, date, synced',
+  users: 'id, email, role',
+  reviews: 'id, patientId, doctorId, status, synced, createdAt'
+});

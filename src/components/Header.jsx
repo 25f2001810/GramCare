@@ -6,7 +6,7 @@ const TABS = [
   { id: 'referral', label: 'Referrals', icon: FileText }
 ];
 
-export default function Header({ online, pending, syncing, onSync, title, subtitle, onBack, activeView, onNavigate }) {
+export default function Header({ online, pending, syncing, onSync, title, subtitle, onBack, activeView, onNavigate, user, onLogout }) {
   return (
     <>
       <header className="app-header no-print">
@@ -20,6 +20,8 @@ export default function Header({ online, pending, syncing, onSync, title, subtit
         )}
         <div className="header-actions">
           <span className={`chip ${online ? 'chip-online' : 'chip-offline'}`}>{online ? 'Online' : 'Offline'}</span>
+          {user && <span className="header-user">{user.name}</span>}
+          {onLogout && <button className="header-btn logout-btn" onClick={onLogout}>Log out</button>}
           {pending > 0 && (
             <button className="sync-btn" onClick={onSync} disabled={!online || syncing}>
               {syncing ? 'Syncing…' : `${pending} waiting`}
