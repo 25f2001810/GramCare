@@ -14,6 +14,8 @@ import VisitList from './components/VisitList.jsx';
 import RecordVisit from './components/RecordVisit.jsx';
 import Referral from './components/Referral.jsx';
 import Login from './pages/Login.jsx';
+import DoctorDashboard from './pages/Doctor/Dashboard.jsx';
+import PatientDetail from './pages/Doctor/PatientDetail.jsx';
 
 const NEXT_VISIT_DAYS = { HIGH: 7, MEDIUM: 14, LOW: 28 };
 const titles = {
@@ -190,18 +192,57 @@ function WorkerReferralDetail() {
 
 function DoctorLayout() {
   const { user, logout } = useAuth();
+  const online = useOnline();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [syncing, setSyncing] = useState(false);
+  const [toast, setToast] = useState('');
+  const visits = useLiveQuery(() => db.visits.toArray(), []);
+  const reviews = useLiveQuery(() => db.reviews.toArray(), []);
+  const pendingVisits = useLiveQuery(() => db.visits.where('synced').equals(0).count(), [], 0);
+  const pendingReviews = useLiveQuery(() => db.reviews.where('synced').equals(0).count(), [], 0);
+  const patients = useLiveQuery(() => db.patients.toArray(), []);
+  const pending = pendingVisits + pendingReviews;
+  const patientViews = patients && visits ? buildPatientViews(patients, visits) : undefined;
+
+  const runSync = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncPending();
+      if (result.synced) setToast(`Synced ${result.synced} item${result.synced === 1 ? '' : 's'}.`);
+    } catch (error) {
+      setToast(`${error.message}. Will retry.`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+  useEffect(() => {
+    if (online && pending > 0) runSync();
+    // Sync when connectivity returns or the number of waiting items changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online, pending]);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(''), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const goLogout = () => {
+    if (pending > 0 && !window.confirm(`You have ${pending} unsynced item${pending === 1 ? '' : 's'}. Log out anyway? They will stay on this phone.`)) return;
+    logout();
+    navigate('/login', { replace: true });
+  };
+  const title = location.pathname === '/doctor' ? 'Doctor dashboard' : 'Patient details';
+  const subtitle = location.pathname === '/doctor' ? 'Review referrals and high-risk patients' : 'Review visit history and care notes';
+
   return (
     <div className="app doctor-app">
-      <header className="app-header">
-        <div className="header-top">
-          <span className="brand">GramCare AI · {user.phc}</span>
-          <button className="header-btn" onClick={() => { logout(); navigate('/login', { replace: true }); }}>Log out</button>
-        </div>
-        <h1>Doctor dashboard</h1>
-        <p className="sub">Review referrals and high-risk patients</p>
-      </header>
-      <main><Outlet /></main>
+      <Header online={online} pending={pending} syncing={syncing} onSync={runSync} title={title} subtitle={subtitle} user={user} onLogout={goLogout} />
+      <main>
+        <p className="phc-label">{user.phc}</p>
+        <Outlet context={{ patients: patientViews, visits, reviews, setToast }} />
+      </main>
+      {toast && <div className="toast no-print" role="status" aria-live="polite">{toast}</div>}
     </div>
   );
 }
@@ -229,8 +270,8 @@ function AppRoutes() {
       </Route>
       <Route element={<RequireRole role="doctor" />}>
         <Route path="/doctor" element={<DoctorLayout />}>
-          <Route index element={<p className="empty-state">Your patient dashboard is being prepared.</p>} />
-          <Route path=":patientId" element={<p className="empty-state">Patient details are being prepared.</p>} />
+          <Route index element={<DoctorDashboard />} />
+          <Route path=":patientId" element={<PatientDetail />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={user ? getRoleHome(user.role) : '/login'} replace />} />

@@ -10,22 +10,28 @@ export async function syncPending() {
   if (!navigator.onLine) return { synced: 0, offline: true };
   running = true;
   try {
-    const pending = await db.visits.where('synced').equals(0).toArray();
-    if (!pending.length) return { synced: 0 };
+    const [pendingVisits, pendingReviews] = await Promise.all([
+      db.visits.where('synced').equals(0).toArray(),
+      db.reviews.where('synced').equals(0).toArray()
+    ]);
+    if (!pendingVisits.length && !pendingReviews.length) return { synced: 0 };
 
     if (SYNC_URL) {
       const res = await fetch(SYNC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visits: pending })
+        body: JSON.stringify({ visits: pendingVisits, reviews: pendingReviews })
       });
       if (!res.ok) throw new Error(`Sync failed (${res.status})`);
     } else {
       await new Promise((r) => setTimeout(r, 700)); // simulated server for the demo
     }
 
-    await db.visits.bulkPut(pending.map((v) => ({ ...v, synced: 1 })));
-    return { synced: pending.length };
+    await Promise.all([
+      pendingVisits.length && db.visits.bulkPut(pendingVisits.map((visit) => ({ ...visit, synced: 1 }))),
+      pendingReviews.length && db.reviews.bulkPut(pendingReviews.map((review) => ({ ...review, synced: 1 })))
+    ]);
+    return { synced: pendingVisits.length + pendingReviews.length };
   } finally {
     running = false;
   }

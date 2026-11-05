@@ -170,6 +170,71 @@ select.lang { width: auto; min-height: 2.75rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .header-user { max-width: 8rem; overflow: hidden; color: #fff; font-size: var(--text-sm); text-overflow: ellipsis; white-space: nowrap; }
 .empty-state { padding: var(--space-5); border: 1px dashed var(--color-line); border-radius: var(--radius-lg); background: #fff; text-align: center; }
+.phc-label { margin: 0 0 var(--space-3); color: var(--color-muted); font-weight: 700; }
+.summary-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
+.summary-card { display: grid; min-height: 8rem; grid-template-columns: 1.5rem 1fr; align-content: center; align-items: center; gap: 0 var(--space-2); padding: var(--space-3); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-card); }
+.summary-card > svg { grid-row: span 2; color: var(--color-primary); }
+.summary-card span { font-size: var(--text-sm); font-weight: 750; }
+.summary-card strong { grid-column: 2; font-size: 1.75rem; line-height: 1.15; }
+.summary-card small { grid-column: 2; color: var(--color-muted); }
+.summary-high > svg { color: var(--color-risk-high); }
+.summary-medium > svg { color: var(--color-risk-medium); }
+.summary-low > svg { color: var(--color-risk-low); }
+.inbox { padding: var(--space-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-card); }
+.inbox-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.inbox-heading h2 { margin: 0; font-size: var(--text-lg); }
+.eyebrow { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); color: var(--color-primary); font-size: var(--text-sm); font-weight: 800; letter-spacing: 0.04em; }
+.inbox-count { color: var(--color-muted); font-size: var(--text-sm); }
+.search-field { display: flex; min-height: 3rem; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border: 2px solid var(--color-line); border-radius: var(--radius-md); color: var(--color-muted); }
+.search-field input { min-height: 2.75rem; padding: 0; border: 0; outline: 0; box-shadow: none; }
+.search-field input:focus-visible { outline: 0; }
+.search-field:focus-within { outline: 3px solid #e6a700; outline-offset: 2px; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0 var(--space-4); }
+.filter-chip { min-height: 3rem; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-line); border-radius: var(--radius-pill); background: #fff; color: var(--color-ink); font-weight: 700; }
+.filter-chip.selected { border-color: var(--color-primary); background: #edf3fd; color: var(--color-primary-dark); }
+.doctor-patient-list { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.doctor-patient-card { border: 1px solid var(--color-line); border-radius: var(--radius-md); background: #fff; }
+.doctor-patient-card.risk-high { border-inline-start: 5px solid var(--color-risk-high); }
+.doctor-patient-card.risk-medium { border-inline-start: 5px solid var(--color-risk-medium); }
+.doctor-patient-card.risk-low { border-inline-start: 5px solid var(--color-risk-low); }
+.patient-card-link { display: flex; min-height: 7rem; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); color: inherit; text-decoration: none; }
+.patient-card-link:focus-visible { border-radius: var(--radius-md); }
+.patient-status-icon { display: grid; width: 2.75rem; height: 2.75rem; flex: none; place-items: center; border-radius: var(--radius-pill); }
+.status-high { background: var(--color-risk-high-bg); color: var(--color-risk-high); }
+.status-medium { background: var(--color-risk-medium-bg); color: var(--color-risk-medium); }
+.status-low { background: var(--color-risk-low-bg); color: var(--color-risk-low); }
+.patient-card-main { display: grid; min-width: 0; flex: 1; gap: var(--space-1); }
+.patient-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.patient-title-row strong { font-size: var(--text-lg); }
+.patient-meta, .patient-last { color: var(--color-muted); }
+.patient-reason { font-weight: 700; }
+.reviewed-state { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-risk-low); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
+.doctor-empty { margin-top: var(--space-4); color: var(--color-muted); }
+.doctor-empty svg { color: var(--color-risk-low); }
+.doctor-empty p { margin: var(--space-2) 0; }
+.patient-detail { display: grid; gap: var(--space-4); }
+.back-link { display: inline-flex; min-height: 3rem; align-items: center; gap: var(--space-2); width: fit-content; color: var(--color-primary); font-weight: 750; text-decoration: none; }
+.detail-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; }
+.detail-heading h2 { margin: var(--space-2) 0 0; font-size: var(--text-xl); }
+.detail-heading .meta { margin-bottom: 0; }
+.detail-grid { display: grid; gap: var(--space-3); }
+.detail-panel, .review-panel { min-width: 0; padding: var(--space-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-card); }
+.detail-panel h3, .review-panel h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-3); font-size: var(--text-lg); }
+.detail-panel h4, .review-history h4 { margin: var(--space-4) 0 var(--space-2); }
+.vitals-history, .risk-reasons, .review-history ul { display: grid; gap: var(--space-2); margin: 0; padding-left: 1.25rem; }
+.vitals-history li { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1) var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-page); }
+.vitals-history time { grid-column: 1 / -1; color: var(--color-muted); font-weight: 700; }
+.transcript, .referral-text { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-page); overflow-wrap: anywhere; white-space: pre-wrap; font: inherit; }
+.review-panel h3 svg { color: var(--color-primary); }
+.review-actions { flex-wrap: wrap; margin-top: var(--space-3); }
+.review-history { margin-top: var(--space-4); border-top: 1px solid var(--color-line); }
+.review-history li time { color: var(--color-muted); font-size: var(--text-sm); }
+.review-history li p { margin: var(--space-1) 0 var(--space-3); }
+.skeleton { min-height: 6rem; border-radius: var(--radius-lg); background: linear-gradient(90deg, #e6eaf0 20%, #f5f7fa 45%, #e6eaf0 70%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+.skeleton-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+.skeleton-list { min-height: 8rem; margin-bottom: var(--space-3); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+@keyframes skeleton-shimmer { to { background-position: -200% 0; } }
 
 @media (min-width: 700px) {
   .app { padding-bottom: var(--space-4); }
@@ -177,6 +242,8 @@ select.lang { width: auto; min-height: 2.75rem; }
   .app-header { padding-right: max(var(--space-5), calc((100% - 1060px) / 2)); padding-left: max(var(--space-5), calc((100% - 1060px) / 2)); }
   .bottom-tabs { position: static; max-width: 40rem; margin: var(--space-4) auto; border: 1px solid var(--color-line); border-radius: var(--radius-lg); box-shadow: none; }
   .toast { bottom: var(--space-5); }
+  .summary-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 380px) {
   .header-actions { gap: var(--space-1); }
