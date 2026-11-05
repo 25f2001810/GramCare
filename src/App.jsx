@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db.js';
+import { DOMAINS } from './config/domains.js';
 import { AuthProvider, canAccessRole, getRoleHome, useAuth } from './lib/auth.js';
 import { seedIfEmpty, resetDemoData } from './lib/seed.js';
 import { buildPatientViews } from './lib/patients.js';
@@ -19,7 +20,6 @@ import PatientDetail from './pages/Doctor/PatientDetail.jsx';
 import SettingsPage from './pages/Settings.jsx';
 import { LanguageProvider } from './i18n/index.js';
 
-const NEXT_VISIT_DAYS = { HIGH: 7, MEDIUM: 14, LOW: 28 };
 const titles = {
   visits: ["Today's visits", 'Homes ranked by health needs'],
   record: ['Record visit', 'Speak or type, then confirm'],
@@ -94,23 +94,52 @@ function WorkerLayout() {
   const patientViews = buildPatientViews(patients, visits);
   const saveVisit = async (visit) => {
     const today = todayISO();
+    const updatedAt = Date.now();
+    const nextDueDate = addDays(today, DOMAINS.pregnancy.defaultFollowUpDays[visit.risk.level]);
     await db.transaction('rw', db.patients, db.visits, async () => {
       await db.visits.add({
         id: uid(),
         patientId: visit.patientId,
+        domain: 'pregnancy',
         date: today,
+        vitals: {
+          bp: visit.bp,
+          sugar: null,
+          hba1c: null,
+          temp: null,
+          weight: visit.weight,
+          hb: visit.hb
+        },
         bp: visit.bp,
         symptoms: visit.symptoms,
         medicines: visit.medicines,
+        notes: '',
         weight: visit.weight,
         hb: visit.hb,
         transcript: visit.transcript,
         synced: 0,
-        updatedAt: Date.now()
+        updatedAt
       });
+      const patient = await db.patients.get(visit.patientId);
+      const conditions = patient.conditions?.length
+        ? patient.conditions.map((condition) => condition.domain === 'pregnancy'
+          ? {
+            ...condition,
+            details: { ...condition.details, weeks: visit.weeks },
+            nextDue: { ...condition.nextDue, date: nextDueDate, label: DOMAINS.pregnancy.nextDueLabel }
+          }
+          : condition)
+        : [{
+          domain: 'pregnancy',
+          details: { weeks: visit.weeks, edd: '' },
+          nextDue: { date: nextDueDate, label: DOMAINS.pregnancy.nextDueLabel }
+        }];
       await db.patients.update(visit.patientId, {
         weeks: visit.weeks,
-        nextVisitDue: addDays(today, NEXT_VISIT_DAYS[visit.risk.level])
+        nextVisitDue: nextDueDate,
+        conditions,
+        domains: [...new Set(conditions.map((condition) => condition.domain))],
+        updatedAt
       });
     });
     setToast(online ? 'Visit saved.' : 'Visit saved on this phone. It will sync when you are online.');

@@ -1,21 +1,68 @@
+import { DOMAINS } from '../config/domains.js';
 import { scorePatient } from './scoring.js';
 import { todayISO } from './util.js';
 
-/** Join patients with their latest visit and a computed risk. Sorted highest risk first. */
+const isNewerVisit = (next, current) =>
+  !current ||
+  next.date > current.date ||
+  (next.date === current.date && (next.updatedAt || 0) > (current.updatedAt || 0));
+
+function patientConditions(patient) {
+  if (Array.isArray(patient.conditions) && patient.conditions.length) return patient.conditions;
+  return [{
+    domain: 'pregnancy',
+    details: { weeks: patient.weeks },
+    nextDue: { date: patient.nextVisitDue || '', label: DOMAINS.pregnancy.nextDueLabel }
+  }];
+}
+
+/** Join patients with per-domain latest visits, next appointment, and computed priority. */
 export function buildPatientViews(patients = [], visits = [], today = todayISO()) {
-  const latestBy = new Map();
-  for (const v of visits) {
-    const cur = latestBy.get(v.patientId);
-    if (!cur || v.date > cur.date || (v.date === cur.date && v.updatedAt > cur.updatedAt)) latestBy.set(v.patientId, v);
+  const latestByPatient = new Map();
+  const latestByPatientDomain = new Map();
+  for (const visit of visits) {
+    const domain = DOMAINS[visit.domain] ? visit.domain : 'pregnancy';
+    const current = latestByPatient.get(visit.patientId);
+    if (isNewerVisit(visit, current)) latestByPatient.set(visit.patientId, visit);
+    const key = `${visit.patientId}:${domain}`;
+    const domainCurrent = latestByPatientDomain.get(key);
+    if (isNewerVisit(visit, domainCurrent)) latestByPatientDomain.set(key, visit);
   }
+
   return patients
-    .map((p) => {
-      const latest = latestBy.get(p.id) || null;
-      const risk = scorePatient(
-        { weeks: p.weeks, nextVisitDue: p.nextVisitDue, bp: latest?.bp, symptoms: latest?.symptoms, hb: latest?.hb },
-        today
-      );
-      return { ...p, latest, risk };
+    .map((patient) => {
+      const conditions = patientConditions(patient);
+      const conditionVisits = conditions.map((condition) => {
+        const domain = DOMAINS[condition.domain] ? condition.domain : 'pregnancy';
+        const latest = latestByPatientDomain.get(`${patient.id}:${domain}`) || null;
+        return latest ? { ...latest, domain } : null;
+      }).filter(Boolean);
+      const latest = latestByPatient.get(patient.id) || null;
+      const nextDue = conditions
+        .map((condition) => ({
+          ...(condition.nextDue || {}),
+          label: condition.nextDue?.label || DOMAINS[condition.domain]?.nextDueLabel || 'Next visit'
+        }))
+        .filter((due) => due.date)
+        .sort((a, b) => a.date.localeCompare(b.date))[0] || null;
+      const risk = scorePatient(patient, conditionVisits, today);
+      const pregnancy = conditions.find((condition) => condition.domain === 'pregnancy');
+      const weeks = patient.weeks ?? pregnancy?.details?.weeks;
+      const nextVisitDue = patient.nextVisitDue || pregnancy?.nextDue?.date || '';
+      return {
+        ...patient,
+        ...(weeks != null ? { weeks } : {}),
+        nextVisitDue,
+        conditions,
+        domains: patient.domains || [...new Set(conditions.map((condition) => condition.domain))],
+        nextDue,
+        latest,
+        risk
+      };
     })
-    .sort((a, b) => b.risk.score - a.risk.score || b.risk.overdueDays - a.risk.overdueDays || a.name.localeCompare(b.name));
+    .sort((a, b) =>
+      b.risk.score - a.risk.score ||
+      b.risk.overdueDays - a.risk.overdueDays ||
+      a.name.localeCompare(b.name)
+    );
 }

@@ -55,6 +55,18 @@ Doctor and health-worker routes are role-protected. Visits, demo accounts, and d
 - Doctor dashboard and patient detail: `src/pages/Doctor/`
 - Localized UI dictionaries: `src/i18n/en.json`, `src/i18n/ta.json`, `src/i18n/hi.json`
 
+## Care domains
+
+Clinical domain metadata and configurable starter rules live in `src/config/domains.js`.
+Patient records have a `conditions` array and indexed `domains` list; each visit stores
+its domain and normalized `vitals`. The current Dexie schema is version 3 to upgrade
+existing version-2 databases while keeping accounts and reviews intact. Legacy pregnancy
+fields remain during the transition so the current screens and tests continue to work.
+All configured thresholds and follow-up defaults are marked **NEEDS CLINICAL REVIEW**.
+These prototype rules are assistive only, are not diagnoses, and must be reviewed before
+clinical use. Demo reset loads 12 fake patients spanning pregnancy, cancer, and diabetes;
+one patient has two conditions.
+
 ## Known limits
 
 - **Authentication is mock/local only.** Demo account credentials are public and login runs entirely in the browser. The locally stored password hashes and 12-hour session are for a hackathon demo, not production identity or access management.

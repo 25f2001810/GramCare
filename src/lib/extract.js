@@ -1,6 +1,7 @@
 // Turns a transcript into structured fields.
 // 1) Optional LLM endpoint (VITE_LLM_ENDPOINT) 2) regex fallback that works offline.
 // The regex path understands English with digits. For Tamil/Hindi, use the LLM endpoint.
+import { DOMAINS } from '../config/domains.js';
 
 const SYMPTOM_PATTERNS = [
   ['headache', /head ?ache|head pain/i],
@@ -61,7 +62,10 @@ export function extractFromTranscript(text = '', patients = []) {
 export function reviewFlags(f) {
   const flags = [];
   if (!f.bp) flags.push('BP not recorded');
-  else if (f.bp.sys >= 140 || f.bp.dia >= 90) flags.push('High BP');
+  else {
+    const thresholds = DOMAINS.pregnancy.rules.bloodPressure;
+    if (f.bp.sys >= thresholds.systolicAtLeast || f.bp.dia >= thresholds.diastolicAtLeast) flags.push('High BP');
+  }
   if (f.weight == null) flags.push('Weight not recorded');
   return flags;
 }
