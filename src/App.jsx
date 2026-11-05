@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { HashRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { HashRouter, Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { HeartPulse } from 'lucide-react';
 import { db } from './db.js';
 import { DOMAINS } from './config/domains.js';
 import { AuthProvider, canAccessRole, getRoleHome, useAuth } from './lib/auth.js';
-import { seedIfEmpty, resetDemoData } from './lib/seed.js';
+import { resetDemoData } from './lib/seed.js';
 import { buildPatientViews } from './lib/patients.js';
 import { syncPending } from './lib/sync.js';
 import { useOnline } from './lib/speech.js';
@@ -14,12 +15,11 @@ import Header from './components/Header.jsx';
 import VisitList from './components/VisitList.jsx';
 import RecordVisit from './components/RecordVisit.jsx';
 import Referral from './components/Referral.jsx';
+import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
-import DoctorDashboard from './pages/Doctor/Dashboard.jsx';
-import PatientDetail from './pages/Doctor/PatientDetail.jsx';
-import SettingsPage from './pages/Settings.jsx';
-import { LanguageProvider } from './i18n/index.js';
+import { LanguageProvider, useLanguage } from './i18n/index.js';
 
+const NEXT_VISIT_DAYS = { HIGH: 7, MEDIUM: 14, LOW: 28 };
 const titles = {
   visits: ["Today's visits", 'Homes ranked by health needs'],
   record: ['Record visit', 'Speak or type, then confirm'],
@@ -33,26 +33,27 @@ function Loading({ message = 'Loading GramCare…' }) {
 function RequireRole({ role }) {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (!canAccessRole(user.role, role)) return <Navigate to={getRoleHome(user.role)} replace />;
   return <Outlet />;
 }
 
-function LoginRoute() {
+function LoginRoute({ role }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
   if (auth.user) return <Navigate to={getRoleHome(auth.user.role)} replace />;
-  return <Login onLogin={auth.login} />;
+  return <Login role={role} onLogin={auth.login} />;
 }
 
-function WorkerLayout() {
+function AdminLayout() {
   const { user, logout } = useAuth();
   const online = useOnline();
   const navigate = useNavigate();
   const location = useLocation();
-  const [consented, setConsented] = useState(() => localStorage.getItem('gc-consent') === '1');
-  const [toast, setToast] = useState('');
+  const { t } = useLanguage();
+  const [consented, setConsented] = useState(() => sessionStorage.getItem(ADMIN_CONSENT_KEY) === user.id);
   const [syncing, setSyncing] = useState(false);
+  const [toast, setToast] = useState('');
   const patients = useLiveQuery(() => db.patients.toArray(), []);
   const visits = useLiveQuery(() => db.visits.toArray(), []);
   const pendingVisits = useLiveQuery(() => db.visits.where('synced').equals(0).count(), [], 0);
@@ -65,6 +66,10 @@ function WorkerLayout() {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  const acceptConsent = () => {
+    sessionStorage.setItem(ADMIN_CONSENT_KEY, user.id);
+    setConsented(true);
+  };
   const runSync = async () => {
     setSyncing(true);
     try {
@@ -76,21 +81,15 @@ function WorkerLayout() {
       setSyncing(false);
     }
   };
-
-  useEffect(() => {
-    if (online && pending > 0) runSync();
-    // Sync when connectivity returns or the number of waiting visits changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online, pending]);
-
-  const acceptConsent = () => {
-    localStorage.setItem('gc-consent', '1');
-    setConsented(true);
+  const goLogout = () => {
+    if (pending > 0 && !window.confirm(`You have ${pending} unsynced item${pending === 1 ? '' : 's'}. Log out anyway? They will stay on this phone.`)) return;
+    sessionStorage.removeItem(ADMIN_CONSENT_KEY);
+    logout();
+    navigate('/', { replace: true });
   };
 
   if (!consented) return <Consent onAccept={acceptConsent} />;
   if (!patients || !visits) return <Loading />;
-
   const patientViews = buildPatientViews(patients, visits);
   const saveVisit = async (visit) => {
     const today = todayISO();
@@ -100,40 +99,16 @@ function WorkerLayout() {
       await db.visits.add({
         id: uid(),
         patientId: visit.patientId,
-        domain: 'pregnancy',
         date: today,
-        vitals: {
-          bp: visit.bp,
-          sugar: null,
-          hba1c: null,
-          temp: null,
-          weight: visit.weight,
-          hb: visit.hb
-        },
         bp: visit.bp,
         symptoms: visit.symptoms,
         medicines: visit.medicines,
-        notes: '',
         weight: visit.weight,
         hb: visit.hb,
         transcript: visit.transcript,
         synced: 0,
-        updatedAt
+        updatedAt: Date.now()
       });
-      const patient = await db.patients.get(visit.patientId);
-      const conditions = patient.conditions?.length
-        ? patient.conditions.map((condition) => condition.domain === 'pregnancy'
-          ? {
-            ...condition,
-            details: { ...condition.details, weeks: visit.weeks },
-            nextDue: { ...condition.nextDue, date: nextDueDate, label: DOMAINS.pregnancy.nextDueLabel }
-          }
-          : condition)
-        : [{
-          domain: 'pregnancy',
-          details: { weeks: visit.weeks, edd: '' },
-          nextDue: { date: nextDueDate, label: DOMAINS.pregnancy.nextDueLabel }
-        }];
       await db.patients.update(visit.patientId, {
         weeks: visit.weeks,
         nextVisitDue: nextDueDate,
@@ -143,193 +118,107 @@ function WorkerLayout() {
       });
     });
     setToast(online ? 'Visit saved.' : 'Visit saved on this phone. It will sync when you are online.');
-    navigate('/visits');
+    navigate('/admin');
   };
-
-  const path = location.pathname.startsWith('/record') ? 'record' : location.pathname.startsWith('/referrals') ? 'referrals' : 'visits';
+  const path = location.pathname.startsWith('/admin/record') ? 'record' : location.pathname.startsWith('/admin/referrals') ? 'referrals' : 'visits';
+  const titles = {
+    visits: [t('dashboard.adminTitle'), t('dashboard.adminSubtitle')],
+    record: [t('tab.record'), t('dashboard.adminSubtitle')],
+    referrals: [t('tab.referrals'), t('dashboard.adminSubtitle')]
+  };
   const [title, subtitle] = titles[path];
-  const goLogout = () => {
-    if (pending > 0 && !window.confirm(`You have ${pending} unsynced item${pending === 1 ? '' : 's'}. Log out anyway? They will stay on this phone.`)) return;
-    logout();
-    navigate('/login', { replace: true });
-  };
-  const navigateTab = (name) => navigate(name === 'home' ? '/visits' : name === 'referral' ? '/referrals' : '/record');
+  const navigateTab = (name) => navigate(name === 'home' ? '/admin' : name === 'referral' ? '/admin/referrals' : '/admin/record');
 
   return (
     <div className="app">
-      <Header
-        online={online}
-        pending={pending}
-        syncing={syncing}
-        onSync={runSync}
-        title={title}
-        subtitle={subtitle}
-        activeView={path === 'visits' ? 'home' : path === 'referrals' ? 'referral' : 'record'}
-        onNavigate={navigateTab}
-        user={user}
-        onLogout={goLogout}
-        onSettings={() => navigate('/settings')}
-      />
-      <main>
-        <Outlet context={{ patients: patientViews, visits, saveVisit, setToast }} />
-      </main>
+      <Header online={online} pending={pending} syncing={syncing} onSync={runSync} title={title} subtitle={subtitle}
+        activeView={path === 'visits' ? 'home' : path === 'referrals' ? 'referral' : 'record'} onNavigate={navigateTab}
+        user={user} onLogout={goLogout} />
+      <main><Outlet context={{ patients: patientViews, visits, saveVisit, setToast }} /></main>
       {toast && <div className="toast no-print" role="status" aria-live="polite">{toast}</div>}
     </div>
   );
 }
 
-function WorkerVisits() {
+function AdminVisits() {
   const { patients, setToast } = useOutletContext();
   const navigate = useNavigate();
-  return (
-    <VisitList
-      patients={patients}
-      onRecord={(id) => navigate('/record', { state: { patientId: id } })}
-      onReferral={(id) => navigate(`/referrals/${id}`)}
-      onReset={async () => {
-        await resetDemoData();
-        setToast('Demo data reset.');
-      }}
-    />
-  );
+  return <VisitList patients={patients} onRecord={(id) => navigate('/admin/record', { state: { patientId: id } })}
+    onReferral={(id) => navigate(`/admin/referrals/${id}`)} onReset={async () => { await resetDemoData(); setToast('Demo data reset.'); }} />;
 }
 
-function WorkerRecord() {
+function AdminRecord() {
   const { patients, saveVisit } = useOutletContext();
   const location = useLocation();
   return <RecordVisit patients={patients} initialId={location.state?.patientId} onSave={saveVisit} />;
 }
 
-function WorkerReferrals() {
+function AdminReferrals() {
   const { patients } = useOutletContext();
   const navigate = useNavigate();
-  return (
-    <section aria-label="Referral list">
-      {patients.some((patient) => patient.risk.level !== 'LOW') ? (
-        <VisitList
-          patients={patients.filter((patient) => patient.risk.level !== 'LOW')}
-          onRecord={(id) => navigate('/record', { state: { patientId: id } })}
-          onReferral={(id) => navigate(`/referrals/${id}`)}
-        />
-      ) : <p className="empty-state"><strong>No urgent referrals. Nice work.</strong><br />Keep recording visits to update patient needs.</p>}
-    </section>
-  );
+  const referred = patients.filter((patient) => patient.risk.level !== 'LOW');
+  return referred.length ? <VisitList patients={referred} onRecord={(id) => navigate('/admin/record', { state: { patientId: id } })}
+    onReferral={(id) => navigate(`/admin/referrals/${id}`)} /> : <p className="empty-state">No urgent referrals. Keep recording visits to update patient needs.</p>;
 }
 
-function WorkerReferralDetail() {
+function AdminReferralDetail() {
   const { patients } = useOutletContext();
   const location = useLocation();
-  const id = location.pathname.split('/').pop();
-  const patient = patients.find((entry) => entry.id === id);
+  const patient = patients.find((entry) => entry.id === location.pathname.split('/').pop());
   return patient ? <Referral patient={patient} /> : <p className="empty-state">This patient is not available on this phone.</p>;
 }
 
-function DoctorLayout() {
+function DoctorDashboard() {
   const { user, logout } = useAuth();
-  const online = useOnline();
+  const { t } = useLanguage();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [syncing, setSyncing] = useState(false);
-  const [toast, setToast] = useState('');
-  const visits = useLiveQuery(() => db.visits.toArray(), []);
-  const reviews = useLiveQuery(() => db.reviews.toArray(), []);
+  const online = useOnline();
   const pendingVisits = useLiveQuery(() => db.visits.where('synced').equals(0).count(), [], 0);
   const pendingReviews = useLiveQuery(() => db.reviews.where('synced').equals(0).count(), [], 0);
-  const patients = useLiveQuery(() => db.patients.toArray(), []);
   const pending = pendingVisits + pendingReviews;
-  const patientViews = patients && visits ? buildPatientViews(patients, visits) : undefined;
-
-  const runSync = async () => {
-    setSyncing(true);
-    try {
-      const result = await syncPending();
-      if (result.synced) setToast(`Synced ${result.synced} item${result.synced === 1 ? '' : 's'}.`);
-    } catch (error) {
-      setToast(`${error.message}. Will retry.`);
-    } finally {
-      setSyncing(false);
-    }
-  };
-  useEffect(() => {
-    if (online && pending > 0) runSync();
-    // Sync when connectivity returns or the number of waiting items changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online, pending]);
-  useEffect(() => {
-    if (!toast) return undefined;
-    const timer = setTimeout(() => setToast(''), 4000);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
   const goLogout = () => {
     if (pending > 0 && !window.confirm(`You have ${pending} unsynced item${pending === 1 ? '' : 's'}. Log out anyway? They will stay on this phone.`)) return;
     logout();
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
   };
-  const title = location.pathname === '/doctor' ? 'Doctor dashboard' : 'Patient details';
-  const subtitle = location.pathname === '/doctor' ? 'Review referrals and high-risk patients' : 'Review visit history and care notes';
-
   return (
     <div className="app doctor-app">
-      <Header online={online} pending={pending} syncing={syncing} onSync={runSync} title={title} subtitle={subtitle} user={user} onLogout={goLogout} onSettings={() => navigate('/settings')} />
+      <Header online={online} pending={pending} title={t('dashboard.doctorTitle')} subtitle={t('dashboard.doctorSubtitle')} user={user} onLogout={goLogout} />
       <main>
-        <p className="phc-label">{user.phc}</p>
-        <Outlet context={{ patients: patientViews, visits, reviews, pending, setToast }} />
+        <section className="dashboard-placeholder">
+          <HeartPulse size={40} aria-hidden="true" />
+          <h2>{t('dashboard.doctorTitle')}</h2>
+          <p>{t('dashboard.doctorPlaceholder')}</p>
+          <p className="meta">{user.hospital}</p>
+          <Link className="btn secondary" to="/">{t('button.backHome')}</Link>
+        </section>
       </main>
-      {toast && <div className="toast no-print" role="status" aria-live="polite">{toast}</div>}
     </div>
   );
 }
 
 function AppRoutes() {
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    seedIfEmpty().then(() => setReady(true)).catch((reason) => setError(reason.message || 'Unable to load demo data.'));
-  }, []);
-  const { user, loading } = useAuth();
-  if (error) return <main className="error" role="alert">{error}</main>;
-  if (!ready || loading) return <Loading />;
-
+  const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/login" element={<LoginRoute />} />
-      <Route element={<RequireUser />}>
-        <Route path="/settings" element={<SettingsPage />} />
-      </Route>
-      <Route element={<RequireRole role="worker" />}>
-        <Route element={<WorkerLayout />}>
-          <Route path="/visits" element={<WorkerVisits />} />
-          <Route path="/record" element={<WorkerRecord />} />
-          <Route path="/referrals" element={<WorkerReferrals />} />
-          <Route path="/referrals/:patientId" element={<WorkerReferralDetail />} />
+      <Route path="/" element={user ? <Navigate to={getRoleHome(user.role)} replace /> : <Landing />} />
+      <Route path="/login/admin" element={<LoginRoute role="admin" />} />
+      <Route path="/login/doctor" element={<LoginRoute role="doctor" />} />
+      <Route element={<RequireRole role="admin" />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminVisits />} />
+          <Route path="visits" element={<AdminVisits />} />
+          <Route path="record" element={<AdminRecord />} />
+          <Route path="referrals" element={<AdminReferrals />} />
+          <Route path="referrals/:patientId" element={<AdminReferralDetail />} />
         </Route>
       </Route>
-      <Route element={<RequireRole role="doctor" />}>
-        <Route path="/doctor" element={<DoctorLayout />}>
-          <Route index element={<DoctorDashboard />} />
-          <Route path=":patientId" element={<PatientDetail />} />
-        </Route>
-      </Route>
-      <Route path="*" element={<Navigate to={user ? getRoleHome(user.role) : '/login'} replace />} />
+      <Route element={<RequireRole role="doctor" />}><Route path="/doctor" element={<DoctorDashboard />} /></Route>
+      <Route path="*" element={<Navigate to={user ? getRoleHome(user.role) : '/'} replace />} />
     </Routes>
   );
 }
 
-function RequireUser() {
-  const { user, loading } = useAuth();
-  if (loading) return <Loading />;
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
-}
-
 export default function App() {
-  return (
-    <AuthProvider>
-      <LanguageProvider>
-        <HashRouter>
-          <AppRoutes />
-        </HashRouter>
-      </LanguageProvider>
-    </AuthProvider>
-  );
+  return <AuthProvider><LanguageProvider><HashRouter><AppRoutes /></HashRouter></LanguageProvider></AuthProvider>;
 }

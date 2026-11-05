@@ -1,8 +1,22 @@
 import { useState } from 'react';
 import { Eye, EyeOff, HeartPulse } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import LanguageToggle from '../components/LanguageToggle.jsx';
 import { useLanguage } from '../i18n/index.js';
 
-export default function Login({ onLogin }) {
+const DEMO_ACCOUNTS = {
+  admin: [
+    { label: 'login.demoAdminOne', email: 'admin@demo.gramcare', password: 'admin123' },
+    { label: 'login.demoAdminTwo', email: 'admin2@demo.gramcare', password: 'admin123' }
+  ],
+  doctor: [
+    { label: 'login.doctor', email: 'dr.kumar@demo.gramcare', password: 'doctor123' },
+    { label: 'login.doctor', email: 'dr.mehta@demo.gramcare', password: 'doctor123' },
+    { label: 'login.doctor', email: 'dr.rao@demo.gramcare', password: 'doctor123' }
+  ]
+};
+
+export default function Login({ role, onLogin }) {
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +35,7 @@ export default function Login({ onLogin }) {
     if (!validEmail || !password) return;
     setBusy(true);
     try {
-      await onLogin(email, password);
+      await onLogin(email, password, role);
     } catch (reason) {
       setError(reason.message === 'Email or password is incorrect.' ? t('login.credentialsIncorrect') : reason.message || 'Unable to sign in. Please try again.');
     } finally {
@@ -32,11 +46,13 @@ export default function Login({ onLogin }) {
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="login-title">
+        <LanguageToggle />
+        <Link className="login-back" to="/">← {t('login.back')}</Link>
         <div className="login-brand">
           <span className="login-logo"><HeartPulse size={30} aria-hidden="true" /></span>
-          <h1 id="login-title">{t('login.title')}</h1>
+          <h1 id="login-title">{t(role === 'admin' ? 'login.adminTitle' : 'login.doctorTitle')}</h1>
         </div>
-        <p className="lead">{t('login.purpose')}</p>
+        <p className="lead">{t(role === 'admin' ? 'login.adminPurpose' : 'login.doctorPurpose')}</p>
         <form className="login-form" onSubmit={submit} noValidate>
           <label className="field" htmlFor="login-email">
             <span>{t('login.email')}</span>
@@ -82,10 +98,9 @@ export default function Login({ onLogin }) {
         <details className="demo-credentials">
           <summary>{t('login.demoCredentials')}</summary>
           <div className="demo-list">
-            <p><strong>{t('login.doctor')}:</strong> dr.kumar@demo.gramcare · doctor123</p>
-            <p><strong>{t('login.doctor')}:</strong> dr.mehta@demo.gramcare · doctor123</p>
-            <p><strong>{t('login.doctor')}:</strong> dr.rao@demo.gramcare · doctor123</p>
-            <p><strong>{t('login.healthWorker')}:</strong> worker@demo.gramcare · worker123</p>
+            {DEMO_ACCOUNTS[role].map((account) => (
+              <p key={account.email}><strong>{t(account.label)}:</strong> {account.email}<br /><strong>{t('login.demoPassword')}:</strong> {account.password}</p>
+            ))}
           </div>
         </details>
         <p className="demo-notice">{t('login.demoNotice')}</p>
